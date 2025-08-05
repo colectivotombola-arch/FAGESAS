@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.fagebot-ai]
 verify_jwt = false
+
+[functions.system-monitor]
+verify_jwt = false

@@ -14,6 +14,7 @@ import Wallet from "./pages/Wallet";
 import Tombola from "./pages/Tombola";
 import UserPanel from "./pages/UserPanel";
 import AdminPanel from "./pages/AdminPanel";
+import SystemOptimizer from "./pages/SystemOptimizer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,11 @@ const App = () => (
             <Route path="/admin-panel" element={
               <ProtectedRoute>
                 <AdminPanel />
+              </ProtectedRoute>
+            } />
+            <Route path="/system-optimizer" element={
+              <ProtectedRoute>
+                <SystemOptimizer />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
