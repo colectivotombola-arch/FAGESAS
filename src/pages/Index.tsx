@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/components/AuthProvider";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, TrendingUp, Users, Shield } from "lucide-react";
+import { Sparkles, TrendingUp, Users, Shield, LogOut } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   const modules = [
     {
@@ -89,10 +91,26 @@ const Index = () => {
         <div className="max-w-7xl mx-auto text-center">
           {/* Hero Section */}
           <div className="mb-16">
-            <div className="floating-animation mb-6">
+            <div className="floating-animation mb-6 flex items-center justify-center gap-8">
               <h1 className="font-orbitron text-7xl md:text-8xl font-black mb-4 executive-gradient glow-effect">
                 FAGESAS
               </h1>
+              {user && (
+                <div className="flex flex-col items-end gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Bienvenido, {user.user_metadata?.full_name || user.email}
+                  </span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => signOut()}
+                    className="hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Salir
+                  </Button>
+                </div>
+              )}
             </div>
             
             <Badge variant="secondary" className="mb-4 px-4 py-2 text-sm">
@@ -107,6 +125,16 @@ const Index = () => {
               La plataforma más avanzada para entretenimiento digital, apuestas deportivas, 
               streaming premium y gestión financiera descentralizada.
             </p>
+
+            {!user && (
+              <Button 
+                className="bg-gradient-primary hover:opacity-90 text-white px-8 py-3 text-lg"
+                onClick={() => navigate('/auth')}
+              >
+                Acceso Ejecutivo
+                <Shield className="ml-2 h-5 w-5" />
+              </Button>
+            )}
           </div>
           
           {/* Modules Grid */}

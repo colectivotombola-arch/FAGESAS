@@ -1,1 +1,7 @@
 project_id = "xwdrvakfrhlrnvqxodft"
+
+[functions.betting-system]
+verify_jwt = false
+
+[functions.fagebot-ai]
+verify_jwt = false
