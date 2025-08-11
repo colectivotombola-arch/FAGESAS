@@ -1,0 +1,26 @@
+name: Cleanup gh-pages
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Clean extra HTML files from gh-pages
+        run: |
+          set -e
+          if ! git ls-remote --heads origin gh-pages | grep -q gh-pages; then
+            echo "No gh-pages branch; nothing to do."
+            exit 0
+          fi
+          git fetch origin gh-pages
+          git checkout gh-pages
+          # Borra todos los .html en la raíz excepto index.html (quita 404.html y 'índice.html')
+          find . -maxdepth 1 -type f -name '*.html' ! -name 'index.html' -print -delete || true
+          git add -A
+          git commit -m "cleanup: remove extra htmls on gh-pages" || true
+          git push origin gh-pages
