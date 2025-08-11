@@ -1,0 +1,26 @@
+name: Force reset gh-pages
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Make minimal site
+        run: |
+          mkdir -p site
+          cat > site/index.html <<'EOF'
+          <!doctype html><meta charset="utf-8">
+          <title>FAGESAS OK</title>
+          <h1 style="font-family:system-ui">FAGESAS OK</h1>
+          <p>GitHub Pages está funcionando.</p>
+          EOF
+      - name: Publish to gh-pages (force replace)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+          force_orphan: true
+          enable_jekyll: false
