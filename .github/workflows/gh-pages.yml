@@ -1,20 +1,16 @@
-name: Deploy (gh-pages branch)
-
+name: Deploy (gh-pages)
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: write
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -25,7 +21,7 @@ jobs:
         run: npm run build
       - name: SPA fallback
         run: cp dist/index.html dist/404.html || true
-      - name: Deploy to gh-pages (force replace)
+      - name: Publish to gh-pages (replace)
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
