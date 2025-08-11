@@ -13,23 +13,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-
       - name: Install
         run: npm ci || npm i
-
       - name: Build
         run: npm run build
-
       - name: SPA fallback
         run: cp dist/index.html dist/404.html || true
-
-      - name: Deploy to gh-pages
+      - name: Deploy to gh-pages (force replace)
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: ./dist
+          force_orphan: true
+          enable_jekyll: false
