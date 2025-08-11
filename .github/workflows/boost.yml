@@ -1,0 +1,362 @@
+name: FAGESAS Boost Installer
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  boost:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Create boost files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p .github/workflows .github/ISSUE_TEMPLATE public/icons src/components src/lib src/__tests__ tests/e2e patches .devcontainer
+
+          cat > .editorconfig << 'EOF'
+          root = true
+          [*]
+          charset = utf-8
+          end_of_line = lf
+          insert_final_newline = true
+          indent_style = space
+          indent_size = 2
+          trim_trailing_whitespace = true
+          [*.md]
+          trim_trailing_whitespace = false
+          EOF
+
+          cat > .prettierrc << 'EOF'
+          {
+            "singleQuote": true,
+            "trailingComma": "all",
+            "printWidth": 100,
+            "semi": true,
+            "arrowParens": "always",
+            "endOfLine": "lf"
+          }
+          EOF
+
+          cat > .lintstagedrc.json << 'EOF'
+          {
+            "*.{ts,tsx,js,jsx}": ["eslint --fix", "prettier --write"],
+            "*.{json,md,css,scss,html}": ["prettier --write"]
+          }
+          EOF
+
+          cat > .github/workflows/ci.yml << 'EOF'
+          name: CI
+          on:
+            push:
+              branches: [ main, develop, 'feature/**', 'boost/**' ]
+            pull_request:
+          jobs:
+            build-test:
+              runs-on: ubuntu-latest
+              steps:
+                - uses: actions/checkout@v4
+                - uses: actions/setup-node@v4
+                  with:
+                    node-version: 20
+                    cache: 'npm'
+                - name: Install
+                  run: npm ci || npm i
+                - name: Typecheck
+                  run: npm run typecheck --if-present
+                - name: Lint
+                  run: npm run lint --if-present
+                - name: Unit tests
+                  run: npm test --if-present
+                - name: Build
+                  run: npm run build --if-present
+          EOF
+
+          cat > .github/ISSUE_TEMPLATE/bug_report.md << 'EOF'
+          ---
+          name: Bug report
+          about: Reporta un error
+          labels: bug
+          ---
+          **Describe el bug**
+          **Para reproducir**
+          **Comportamiento esperado**
+          **Capturas / logs**
+          **Entorno**
+          **Notas**
+          EOF
+
+          cat > .github/ISSUE_TEMPLATE/feature_request.md << 'EOF'
+          ---
+          name: Feature request
+          about: Sugiere una idea
+          labels: enhancement
+          ---
+          **Problema a resolver**
+          **Propuesta**
+          **Valor para el usuario**
+          **Alternativas**
+          **Notas**
+          EOF
+
+          cat > .github/pull_request_template.md << 'EOF'
+          ## Objetivo
+          ## Cambios
+          - [ ] Código
+          - [ ] Tests
+          - [ ] Docs
+          ## Checklist
+          - [ ] `npm run build`
+          - [ ] `npm test`
+          - [ ] Docs actualizadas
+          ## Screenshots
+          ## Relacionado
+          Closes #...
+          EOF
+
+          cat > SECURITY.md << 'EOF'
+          # Política de Seguridad
+          - No publiques secretos (.env) en el repo.
+          - Usa variables de entorno para credenciales.
+          - Revisa dependencias periódicamente (npm audit).
+          EOF
+
+          cat > CONTRIBUTING.md << 'EOF'
+          # Contribución
+          1. Rama desde `develop` o `boost/...`.
+          2. `npm i` y `npm run dev` para local.
+          3. Asegura lint, tests y build.
+          4. PR con descripción y capturas si aplica.
+          EOF
+
+          cat > .htaccess << 'EOF'
+          <IfModule mod_rewrite.c>
+            RewriteEngine On
+            RewriteBase /
+            RewriteRule ^index\.html$ - [L]
+            RewriteCond %{REQUEST_FILENAME} !-f
+            RewriteCond %{REQUEST_FILENAME} !-d
+            RewriteRule . /index.html [L]
+          </IfModule>
+          <IfModule mod_headers.c>
+            Header set X-Frame-Options "SAMEORIGIN"
+            Header set X-Content-Type-Options "nosniff"
+            Header set Referrer-Policy "strict-origin-when-cross-origin"
+            Header set Permissions-Policy "geolocation=(), microphone=()"
+            Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+            Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://*.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.openai.com; frame-ancestors 'self';"
+          </IfModule>
+          EOF
+
+          cat > public/manifest.webmanifest << 'EOF'
+          {
+            "name": "FAGESAS",
+            "short_name": "FAGESAS",
+            "start_url": "/",
+            "display": "standalone",
+            "background_color": "#0b0f19",
+            "theme_color": "#0b0f19",
+            "icons": [
+              { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+              { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+            ]
+          }
+          EOF
+
+          cat > public/robots.txt << 'EOF'
+          User-agent: *
+          Allow: /
+
+          Sitemap: /sitemap.xml
+          EOF
+
+          cat > src/components/ErrorBoundary.tsx << 'EOF'
+          import React from 'react';
+
+          type Props = { children: React.ReactNode };
+          type State = { hasError: boolean; error?: Error };
+
+          export class ErrorBoundary extends React.Component<Props, State> {
+            constructor(props: Props) {
+              super(props);
+              this.state = { hasError: false };
+            }
+            static getDerivedStateFromError(error: Error) {
+              return { hasError: true, error };
+            }
+            componentDidCatch(error: Error, info: React.ErrorInfo) {
+              console.error('ErrorBoundary caught:', error, info);
+            }
+            render() {
+              if (this.state.hasError) {
+                return (
+                  <div className="min-h-screen grid place-items-center text-center p-6">
+                    <div>
+                      <h1 className="text-3xl font-bold mb-2">Algo salió mal</h1>
+                      <p className="opacity-80">Recarga la página. El equipo ya fue notificado.</p>
+                    </div>
+                  </div>
+                );
+              }
+              return this.props.children;
+            }
+          }
+          EOF
+
+          cat > src/lib/env.ts << 'EOF'
+          import { z } from 'zod';
+
+          const envSchema = z.object({
+            VITE_SUPABASE_URL: z.string().url().optional(),
+            VITE_SUPABASE_ANON_KEY: z.string().min(10).optional(),
+            VITE_OPENAI_API_KEY: z.string().min(10).optional(),
+          });
+
+          const parsed = envSchema.safeParse(import.meta.env);
+          if (!parsed.success) {
+            console.error('❌ Variables de entorno inválidas:', parsed.error.flatten().fieldErrors);
+            throw new Error('Variables de entorno inválidas. Revisa tu .env');
+          }
+          export const env = parsed.data;
+          EOF
+
+          cat > vitest.config.ts << 'EOF'
+          import { defineConfig } from 'vitest/config';
+          import react from '@vitejs/plugin-react';
+
+          export default defineConfig({
+            plugins: [react()],
+            test: {
+              environment: 'jsdom',
+              setupFiles: ['./vitest.setup.ts'],
+              globals: true,
+              css: true,
+            },
+          });
+          EOF
+
+          cat > vitest.setup.ts << 'EOF'
+          import '@testing-library/jest-dom';
+          EOF
+
+          cat > src/__tests__/smoke.test.tsx << 'EOF'
+          import { render, screen } from '@testing-library/react';
+          import React from 'react';
+
+          function Dummy() { return <h1>FAGESAS</h1>; }
+
+          test('renderiza FAGESAS', () => {
+            render(<Dummy />);
+            expect(screen.getByText('FAGESAS')).toBeInTheDocument();
+          });
+          EOF
+
+          cat > playwright.config.ts << 'EOF'
+          import { defineConfig } from '@playwright/test';
+
+          export default defineConfig({
+            webServer: {
+              command: 'npm run dev -- --host --port 5173',
+              url: 'http://localhost:5173',
+              timeout: 120000,
+              reuseExistingServer: !process.env.CI,
+            },
+            use: { headless: true },
+            testDir: 'tests/e2e'
+          });
+          EOF
+
+          cat > tests/e2e/smoke.spec.ts << 'EOF'
+          import { test, expect } from '@playwright/test';
+
+          test('home loads', async ({ page }) => {
+            await page.goto('/');
+            await expect(page).toHaveURL(/http:\/\/localhost:5173\//);
+          });
+          EOF
+
+          cat > patches/vite.config.ts.additions.txt << 'EOF'
+          // npm i -D vite-plugin-pwa
+          import { VitePWA } from 'vite-plugin-pwa';
+          // En defineConfig({ plugins: [...] })
+          VitePWA({
+            registerType: 'autoUpdate',
+            includeAssets: ['favicon.ico', 'robots.txt', 'icons/icon-192.png', 'icons/icon-512.png'],
+            manifest: {
+              name: 'FAGESAS',
+              short_name: 'FAGESAS',
+              start_url: '/',
+              display: 'standalone',
+              background_color: '#0b0f19',
+              theme_color: '#0b0f19',
+              icons: [
+                { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+                { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' }
+              ]
+            }
+          })
+          EOF
+
+          cat > INSTRUCTIONS.md << 'EOF'
+          # FAGESAS Boost — Auto PR
+          1) Tras merge, ejecuta:
+             npm run lint && npm run typecheck && npm test && npm run build
+          2) Opcional: activa PWA con el snippet en patches/vite.config.ts.additions.txt
+          3) Para Hostinger: sube la carpeta dist + .htaccess
+          EOF
+
+          cat > .devcontainer/devcontainer.json << 'EOF'
+          {
+            "name": "FAGESAS",
+            "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+            "postCreateCommand": "npm ci",
+            "customizations": {
+              "vscode": {
+                "extensions": [
+                  "esbenp.prettier-vscode",
+                  "dbaeumer.vscode-eslint",
+                  "ms-playwright.playwright"
+                ]
+              }
+            }
+          }
+          EOF
+
+      - name: Patch package.json (scripts)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f package.json ]; then
+            echo "package.json no existe. Aborta." >&2
+            exit 1
+          fi
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));p.scripts=p.scripts||{};Object.assign(p.scripts,{test:'vitest --run','test:ui':'vitest','e2e':'playwright test','e2e:ui':'playwright test --ui','typecheck':'tsc -p tsconfig.json --noEmit','lint':'eslint .','prepare':'husky'});fs.writeFileSync('package.json',JSON.stringify(p,null,2));console.log('Scripts añadidos');"
+
+      - name: Add devDependencies & deps
+        run: |
+          npm i -D vitest @vitest/ui @testing-library/react @testing-library/user-event jsdom @types/jsdom
+          npm i -D @playwright/test husky lint-staged prettier
+          npm i zod vite-plugin-pwa
+
+      - name: Setup Husky
+        run: |
+          npx husky init
+          echo "npx lint-staged" > .husky/pre-commit
+
+      - name: Create PR with changes
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "Bo
